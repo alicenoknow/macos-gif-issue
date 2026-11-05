@@ -1,0 +1,3 @@
+[submodule "react-native-macos"]
+	path = react-native-macos
+	url = https://github.com/microsoft/react-native-macos/

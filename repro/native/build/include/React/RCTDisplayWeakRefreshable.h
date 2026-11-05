@@ -1,1 +1,0 @@
-/Users/alicjaniewiadomska/.t3/scratch/2026-11-05-invenstigate-issue-prepare-best-fix-a401bb51/react-native-macos/packages/react-native/Libraries/Image/RCTDisplayWeakRefreshable.h
