@@ -4,9 +4,9 @@
 
 ```markdown
 react-native-macos: 0.83.0 (also reproduced on main @ 39431293dc)
-Architecture: New Architecture (Fabric). Paper is affected too, since both use RCTUIImageViewAnimated.
-macOS: 14+ (reproduced on 26.6)
-Xcode: <fill in>
+Architecture: New Architecture (Fabric). Paper should be affected too, since both use RCTUIImageViewAnimated (not tested).
+macOS: 14+ (reproduced on 26.6.2, 25G83)
+Xcode: 27.2 (27B52)
 ```
 
 ### Steps to reproduce the bug
@@ -16,7 +16,7 @@ Xcode: <fill in>
    <Image source={require('./animated.gif')} style={{width: 200, height: 200}} />
    ```
    Or open RNTester → Image → **Animated GIF**.
-2. Watch the image.
+2. Check the GIF.
 
 ### Expected Behavior
 
@@ -28,23 +28,22 @@ The first frame stays on screen. `onLoad` fires and no error is reported.
 
 ### Reproducible Demo
 
-- RNTester → Image → Animated GIF
-- Standalone native repro (no app build needed): <link to gist with `repro/native`>. It compiles the real
-  `RCTPlatformDisplayLink.m` and `RCTDisplayWeakRefreshable.mm` and counts display-link callbacks.
-  The count is **0** on `main` and `0.83-stable`.
+RNTester → Image → **Animated GIF**.
 
-### Additional context
+On `main` this example is hidden by an unrelated RNTester bug: `RNTesterModuleContainer` hides an example when
+`Platform.OS !== platform`, and this example uses `platform: ['ios', 'macos']`, which never equals a string. That is fixed in #3164. To see the example:
 
-Decoding is fine: `RCTGIFImageDecoder` returns an `RCTAnimatedImage` with the correct frame count and
-durations. The per-frame callback never reaches `RCTUIImageViewAnimated`:
+1. Check out #3164 (`gh pr checkout 3164`), or in `packages/rn-tester/js/components/RNTesterModuleContainer.js` change
+   ```js
+   if (platform != null && Platform.OS !== platform) {
+   ```
+   to
+   ```js
+   if (platform != null && !(Array.isArray(platform) ? platform.includes(Platform.OS) : Platform.OS === platform)) {
+   ```
+2. Run RNTester-macOS, open **Image**, and type "gif" in the filter.
 
-- `RCTUIImageViewAnimated` creates its link with `+[RCTDisplayWeakRefreshable displayLinkWithWeakRefreshable:self]`.
-- That method allocates an `RCTDisplayWeakRefreshable` proxy as a local and passes it as the link's target.
-- On iOS, `CADisplayLink` retains its target, so the proxy lives as long as the link.
-- On macOS, `RCTPlatformDisplayLink` stores `__weak id _target`. Nothing owns the proxy, so it is
-  deallocated when `displayLinkWithWeakRefreshable:` returns.
-- The `CVDisplayLink` keeps firing, but `-tick` messages `nil`, so the view never moves past frame 0.
+The card "Animated GIF (ios,macos only)" shows the first frame of the GIF and never changes.
 
-The weak `_target` dates from 2019 (5c0c3d40849) and the proxy from 2020 (efc221bd10c), so this has
-probably been broken on macOS since the proxy was introduced. Issue #507 / PR #724 enabled GIF
-decoding on macOS but didn't touch the display link.
+<before.mp4>
+
